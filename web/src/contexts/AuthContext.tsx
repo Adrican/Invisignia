@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Cookies from 'js-cookie';
 
 interface User {
@@ -22,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si hay token guardado al cargar la página
+    // comprobar token
     const token = Cookies.get('invisignia_token');
     const email = Cookies.get('invisignia_email');
     
@@ -35,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, token: string) => {
     const userData = { email, token };
     setUser(userData);
-    
-    // Guardar en cookies (expira en 7 días)
+
+    // guardar 7 dias en las cookies
     Cookies.set('invisignia_token', token, { expires: 7 });
     Cookies.set('invisignia_email', email, { expires: 7 });
   };
