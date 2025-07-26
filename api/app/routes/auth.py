@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == user_in.email).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Ese email ya está registrado")
     user = User(email=user_in.email, password=hash_password(user_in.password))
     db.add(user)
     db.commit()
@@ -27,7 +27,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail="Incorrecto",
             headers={"WWW-Authenticate": "Bearer"},
         )
     token = create_access_token({"user_id": user.id})
@@ -36,7 +36,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="No se ha podido validar las credenciales",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:

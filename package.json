@@ -1,0 +1,19 @@
+{
+  "name": "invisignia",
+  "version": "1.0.0",
+  "description": "Watermarking application with FastAPI and NextJS",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd api && uvicorn main:app --reload --port 8000",
+    "dev:web": "cd web && npm run dev",
+    "install:web": "cd web && npm install",
+    "install:api": "cd api && pip install -r requirements.txt",
+    "setup": "npm run install:api && npm run install:web",
+    "build:web": "cd web && npm run build",
+    "start:web": "cd web && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["watermarking", "fastapi", "nextjs", "dct"]
+}

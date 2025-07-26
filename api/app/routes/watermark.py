@@ -56,7 +56,7 @@ async def verify_file(
     ).first()
     
     if not record:
-        raise HTTPException(status_code=404, detail="Documento no encontrado en tus registros")
+        raise HTTPException(status_code=404, detail="Ese documento no contiene una marca de agua válida o no pertenece al usuario")
     
     return {
         "status": "found",
