@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AllDocuments from '@/components/AllDocuments';
 
 export default function AppPage() {
   const { user, logout, isLoading } = useAuth();
@@ -112,22 +113,7 @@ export default function AppPage() {
 
         {/* Recent Activity */}
         <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Actividad Reciente</CardTitle>
-              <CardDescription>
-                Historial de tus documentos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <p>No hay actividad reciente</p>
-                <p className="text-sm mt-2">
-                  Comienza subiendo una imagen para ver tu historial aquí
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <AllDocuments />
         </div>
       </main>
     </div>

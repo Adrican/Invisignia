@@ -17,6 +17,13 @@ interface VerifyResponse {
   created_at: string;
 }
 
+interface HistoryItem {
+  id: number;
+  purpose: string;
+  created_at: string;
+  hash_id: string;
+}
+
 class ApiClient {
   private getAuthHeaders(token?: string) {
     const headers: Record<string, string> = {};
@@ -88,6 +95,19 @@ class ApiClient {
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Error al verificar el archivo');
+    }
+    return response.json();
+  }
+
+  async getUserHistory(token: string, limit: number = 10): Promise<HistoryItem[]> {
+    const response = await fetch(`${API_BASE}/history/?limit=${limit}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Error al obtener el historial');
     }
     return response.json();
   }

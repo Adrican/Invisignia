@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, token: string) => void;
   logout: () => void;
+  clearInvalidSession: () => void;
   isLoading: boolean;
 }
 
@@ -21,6 +22,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // comprobar token
@@ -29,9 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (token && email) {
       setUser({ email, token });
+      
+      if (pathname === '/login' || pathname === '/register') {
+        router.push('/app');
+      }
     }
     setIsLoading(false);
-  }, []);
+  }, [pathname, router]);
 
   const login = (email: string, token: string) => {
     const userData = { email, token };
@@ -46,10 +53,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     Cookies.remove('invisignia_token');
     Cookies.remove('invisignia_email');
+    router.push('/');
+  };
+
+    const clearInvalidSession = () => {
+    console.log('Token inválido detectado, limpiando sesión...');
+    setUser(null);
+    Cookies.remove('invisignia_token');
+    Cookies.remove('invisignia_email');
+    router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, clearInvalidSession, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

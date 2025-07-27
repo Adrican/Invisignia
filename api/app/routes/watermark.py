@@ -64,3 +64,24 @@ async def verify_file(
         "created_at": record.created_at,
         "user_email": current_user.email  # opcional por ahora
     }
+
+@router.get("/history/")
+async def get_user_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = 10
+):
+    """Obtener historial de marcas de agua del usuario"""
+    watermarks = db.query(Watermark).filter(
+        Watermark.user_id == current_user.id
+    ).order_by(Watermark.created_at.desc()).limit(limit).all()
+    
+    return [
+        {
+            "id": w.id,
+            "purpose": w.purpose,
+            "created_at": w.created_at.isoformat(),
+            "hash_id": w.hash_id
+        }
+        for w in watermarks
+    ]
