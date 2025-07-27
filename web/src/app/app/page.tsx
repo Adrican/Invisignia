@@ -82,7 +82,7 @@ export default function AppPage() {
                 className="w-full" 
                 onClick={() => router.push('/app/upload')}
               >
-                Ir a Subir Archivo
+                Subir Archivo
               </Button>
             </CardContent>
           </Card>
@@ -104,7 +104,7 @@ export default function AppPage() {
                 variant="outline"
                 onClick={() => router.push('/app/verify')}
               >
-                Ir a Verificar
+                Verificar Documento
               </Button>
             </CardContent>
           </Card>

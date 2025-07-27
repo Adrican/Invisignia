@@ -11,7 +11,21 @@ interface RegisterResponse {
   is_active: boolean;
 }
 
+interface VerifyResponse {
+  status: string;
+  purpose: string;
+  created_at: string;
+}
+
 class ApiClient {
+  private getAuthHeaders(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   async login(email: string, password: string): Promise<LoginResponse> {
     const formData = new FormData();
     formData.append('username', email);
@@ -39,6 +53,41 @@ class ApiClient {
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Error en el registro');
+    }
+    return response.json();
+  }
+
+  async uploadWatermark(file: File, purpose: string, token: string): Promise<Blob> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('purpose', purpose);
+    
+    const response = await fetch(`${API_BASE}/upload/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || 'Error al subir el archivo');
+    }
+    return response.blob();
+  }
+
+  async verifyWatermark(file: File, token: string): Promise<VerifyResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch(`${API_BASE}/verify/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Error al verificar el archivo');
     }
     return response.json();
   }

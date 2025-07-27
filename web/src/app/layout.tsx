@@ -6,7 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Invisignia - Watermarking System",
+  title: "Invisignia",
   description: "Sistema de marcas de agua invisibles",
 };
 
