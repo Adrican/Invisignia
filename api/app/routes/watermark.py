@@ -47,7 +47,7 @@ async def verify_file(
     temp_path = os.path.join(UPLOAD_DIR, temp_name)
     with open(temp_path, "wb") as buf:
         shutil.copyfileobj(file.file, buf)
-    hash_extracted = extract_watermark(temp_path)
+    hash_extracted = extract_watermark(temp_path, 256)  # Cambiar a 256
     
     # Buscar solo las marcas del usuario logueado
     record = db.query(Watermark).filter(
@@ -85,3 +85,56 @@ async def get_user_history(
         }
         for w in watermarks
     ]
+
+@router.post("/debug/")
+async def create_debug_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Endpoint para crear imagen de debug que muestra visualmente las marcas"""
+    temp_name = f"debug_{uuid.uuid4().hex}_{file.filename}"
+    temp_path = os.path.join(UPLOAD_DIR, temp_name)
+    
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    debug_name = temp_name.replace(".", "_debug.")
+    debug_path = os.path.join(UPLOAD_DIR, debug_name)
+    
+    from app.utils.dct_watermark import create_debug_image
+    create_debug_image(temp_path, debug_path)
+    
+    return FileResponse(debug_path, media_type="application/octet-stream", filename=debug_name)
+
+@router.post("/test/")
+async def test_watermark_algorithm(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Endpoint para probar la integridad del algoritmo de watermark"""
+    temp_name = f"test_{uuid.uuid4().hex}_{file.filename}"
+    temp_path = os.path.join(UPLOAD_DIR, temp_name)
+    
+    with open(temp_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    test_hash = hashlib.sha256(f"test_{uuid.uuid4().hex}".encode()).hexdigest()
+    
+    from app.utils.dct_watermark import test_watermark_integrity
+    success = test_watermark_integrity(temp_path, test_hash)
+    
+    try:
+        os.remove(temp_path)
+        temp_marked = temp_path.replace('.', '_temp_marked.')
+        if os.path.exists(temp_marked):
+            os.remove(temp_marked)
+    except:
+        pass
+    
+    return {
+        "test_passed": success,
+        "hash_used": test_hash,
+        "message": "✅ Algoritmo funcionando correctamente" if success else "❌ Error en el algoritmo"
+    }

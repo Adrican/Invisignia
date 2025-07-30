@@ -12,6 +12,7 @@ app = FastAPI(title="Invisignia API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # direccion de la web
+    #allow_origins=["*"],  # descomentar para probar desde el movil
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

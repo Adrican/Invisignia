@@ -5,29 +5,23 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('invisignia_token')?.value;
   const pathname = request.nextUrl.pathname;
 
-  // ruta para loguear
+  // Rutas que requieren autenticación
   if (pathname.startsWith('/app')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
-  // si estas logueado, no puedes acceder a login y registro
+  // Si ya estás logueado, redirigir login/register a /app
   if (pathname === '/login' || pathname === '/register') {
     if (token) {
       return NextResponse.redirect(new URL('/app', request.url));
     }
   }
 
-  // redirigir a login si no hay token, o a app si hay token
-  if (pathname === '/') {
-    if (token) {
-      return NextResponse.redirect(new URL('/app', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
+  // La raíz (/) ahora será la landing page pública
+  // Solo redirigir a /app si hay token Y se está accediendo a rutas protegidas
+  
   return NextResponse.next();
 }
 

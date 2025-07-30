@@ -12,7 +12,8 @@ import { apiClient } from '@/lib/api';
 export default function UploadPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [purpose, setPurpose] = useState('');
@@ -23,7 +24,6 @@ export default function UploadPage() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Verificar que sea una imagen
       if (!file.type.startsWith('image/')) {
         setError('Solo se permiten archivos de imagen');
         return;
@@ -56,23 +56,23 @@ export default function UploadPage() {
     try {
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
       
-      // Generar nombre del archivo marcado
       const originalName = selectedFile.name;
       const nameParts = originalName.split('.');
       const extension = nameParts.pop();
       const baseName = nameParts.join('.');
       const markedFileName = `${baseName}_marked.${extension}`;
       
-      // Descargar automáticamente
       downloadFile(blob, markedFileName);
       
       setSuccess(true);
       setSelectedFile(null);
       setPurpose('');
       
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = '';
+      }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
       }
       
     } catch (err) {
@@ -150,20 +150,46 @@ export default function UploadPage() {
               ) : (
                 <div>
                   <div className="text-gray-400 text-4xl mb-2">📤</div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Arrastra una imagen aquí o haz clic para seleccionar
+                  <p className="text-sm text-gray-600 mb-4">
+                    Arrastra una imagen aquí o elige una opción:
                   </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Seleccionar Archivo
-                  </Button>
+                  
+                  {/* Botones separados */}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>📷</span>
+                      <span>Hacer una foto</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>🖼️</span>
+                      <span>Galería</span>
+                    </Button>
+                  </div>
                 </div>
               )}
               
+              {/* Input para cámara */}
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              {/* Input para galería */}
+              <input
+                ref={galleryInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleFileSelect}
@@ -196,7 +222,7 @@ export default function UploadPage() {
             {/* Success Message */}
             {success && (
               <div className="p-3 text-sm text-green-500 bg-green-50 border border-green-200 rounded">
-                ¡Archivo procesado y descargado exitosamente!
+                ¡Archivo procesado y descargado correctamente!
               </div>
             )}
 

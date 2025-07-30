@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // comprobar token
+    //compruebo token
     const token = Cookies.get('invisignia_token');
     const email = Cookies.get('invisignia_email');
     
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-    const clearInvalidSession = () => {
+  const clearInvalidSession = () => {
     console.log('Token inválido detectado, limpiando sesión...');
     setUser(null);
     Cookies.remove('invisignia_token');

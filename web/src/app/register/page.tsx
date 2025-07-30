@@ -51,7 +51,7 @@ export default function RegisterPage() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <div className="text-green-600 text-4xl mb-4">✓</div>
-            <h2 className="text-xl font-semibold mb-2">¡Registro exitoso!</h2>
+            <h2 className="text-xl font-semibold mb-2">¡Cuenta creada!</h2>
             <p className="text-gray-600">Serás redirigido al login...</p>
           </CardContent>
         </Card>

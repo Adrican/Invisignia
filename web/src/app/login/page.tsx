@@ -46,6 +46,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      {/* volver al inicio */}
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="ghost" className="flex items-center space-x-2">
+            <span>←</span>
+            <span>Volver al inicio</span>
+          </Button>
+        </Link>
+      </div>
+      
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
