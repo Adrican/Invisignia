@@ -1,18 +1,15 @@
 from fastapi import APIRouter, UploadFile, Form, File, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Watermark, User
-from app.routes.auth import get_current_user  # cogemos usuario logueado
-from app.utils.dct_watermark import embed_watermark, extract_watermark
-import shutil
-import os
+from app.routes.auth import get_current_user
+from app.utils.dct_watermark import embed_watermark_memory, extract_watermark_memory, test_watermark_integrity_memory
 import hashlib
 import uuid
+from typing import List
 
 router = APIRouter()
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload/")
 async def upload_file(
@@ -21,55 +18,118 @@ async def upload_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    temp_name = f"{uuid.uuid4().hex}_{file.filename}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_name)
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    output_name = temp_name.replace(".", "_marked.")
-    output_path = os.path.join(UPLOAD_DIR, output_name)
+    # Validar tipo de archivo
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
+    
+    # Leer archivo en memoria
+    image_data = await file.read()
+    
+    if len(image_data) == 0:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
+    
+    # Generar hash único
     raw = purpose + uuid.uuid4().hex
     hash_id = hashlib.sha256(raw.encode()).hexdigest()
-    embed_watermark(temp_path, output_path, hash_id)
-    # usamos usuario logueado
-    wm = Watermark(user_id=current_user.id, hash_id=hash_id, purpose=purpose)
-    db.add(wm)
-    db.commit()
-    return FileResponse(output_path, media_type="application/octet-stream", filename=output_name)
-
+    
+    print(f"TEST: Probando calidad de imagen antes de procesar...")
+    
+    # Probar integridad del algoritmo en memoria
+    test_success = test_watermark_integrity_memory(image_data, hash_id)
+    
+    if not test_success:
+        raise HTTPException(
+            status_code=400, 
+            detail="La imagen no tiene suficiente calidad para agregar una marca de agua invisible. "
+                   "Intenta con una imagen de mayor resolución o menos comprimida."
+        )
+    
+    print(f"OK: Test exitoso, procesando imagen en memoria...")
+    
+    try:
+        # Procesar imagen en memoria
+        marked_image_data = embed_watermark_memory(image_data, hash_id)
+        
+        # Guardar registro en base de datos
+        wm = Watermark(user_id=current_user.id, hash_id=hash_id, purpose=purpose)
+        db.add(wm)
+        db.commit()
+        
+        # Determinar el tipo de contenido apropiado
+        content_type = "image/png"  # Siempre devolvemos PNG para preservar calidad
+        
+        # Generar nombre de archivo sugerido
+        original_name = file.filename or "image"
+        name_parts = original_name.rsplit('.', 1)
+        if len(name_parts) > 1:
+            base_name = name_parts[0]
+            suggested_filename = f"{base_name}_marked.png"
+        else:
+            suggested_filename = f"{original_name}_marked.png"
+        
+        # Retornar imagen directamente desde memoria
+        return Response(
+            content=marked_image_data,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"attachment; filename={suggested_filename}"
+            }
+        )
+        
+    except Exception as e:
+        print(f"Error procesando imagen: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al procesar la imagen")
 
 @router.post("/verify/")
 async def verify_file(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),  # usuario logueado solo
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    temp_name = f"verify_{uuid.uuid4().hex}_{file.filename}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_name)
-    with open(temp_path, "wb") as buf:
-        shutil.copyfileobj(file.file, buf)
-    hash_extracted = extract_watermark(temp_path, 256)  # Cambiar a 256
+    # Validar tipo de archivo
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
     
-    # Buscar solo las marcas del usuario logueado
-    record = db.query(Watermark).filter(
-        Watermark.hash_id == hash_extracted,
-        Watermark.user_id == current_user.id
-    ).first()
+    # Leer archivo en memoria
+    image_data = await file.read()
     
-    if not record:
-        raise HTTPException(status_code=404, detail="Ese documento no contiene una marca de agua válida o no pertenece al usuario")
+    if len(image_data) == 0:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
     
-    return {
-        "status": "found",
-        "purpose": record.purpose,
-        "created_at": record.created_at,
-        "user_email": current_user.email  # opcional por ahora
-    }
+    try:
+        # Extraer marca de agua desde memoria
+        hash_extracted = extract_watermark_memory(image_data, 256)
+        
+        # Buscar solo las marcas del usuario logueado
+        record = db.query(Watermark).filter(
+            Watermark.hash_id == hash_extracted,
+            Watermark.user_id == current_user.id
+        ).first()
+        
+        if not record:
+            raise HTTPException(
+                status_code=404, 
+                detail="Ese documento no contiene una marca de agua válida o no pertenece al usuario"
+            )
+        
+        return {
+            "status": "found",
+            "purpose": record.purpose,
+            "created_at": record.created_at,
+            "user_email": current_user.email
+        }
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"Error verificando imagen: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al verificar la imagen")
 
 @router.get("/history/")
 async def get_user_history(
+    limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    limit: int = 10
+    db: Session = Depends(get_db)
 ):
     """Obtener historial de marcas de agua del usuario"""
     watermarks = db.query(Watermark).filter(
@@ -78,34 +138,13 @@ async def get_user_history(
     
     return [
         {
-            "id": w.id,
-            "purpose": w.purpose,
-            "created_at": w.created_at.isoformat(),
-            "hash_id": w.hash_id
+            "id": wm.id,
+            "purpose": wm.purpose,
+            "created_at": wm.created_at,
+            "hash_id": wm.hash_id[:16] + "..."  # Solo mostrar parte del hash por seguridad
         }
-        for w in watermarks
+        for wm in watermarks
     ]
-
-@router.post("/debug/")
-async def create_debug_image(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Endpoint para crear imagen de debug que muestra visualmente las marcas"""
-    temp_name = f"debug_{uuid.uuid4().hex}_{file.filename}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_name)
-    
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    debug_name = temp_name.replace(".", "_debug.")
-    debug_path = os.path.join(UPLOAD_DIR, debug_name)
-    
-    from app.utils.dct_watermark import create_debug_image
-    create_debug_image(temp_path, debug_path)
-    
-    return FileResponse(debug_path, media_type="application/octet-stream", filename=debug_name)
 
 @router.post("/test/")
 async def test_watermark_algorithm(
@@ -113,28 +152,29 @@ async def test_watermark_algorithm(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Endpoint para probar la integridad del algoritmo de watermark"""
-    temp_name = f"test_{uuid.uuid4().hex}_{file.filename}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_name)
+    """Endpoint para probar la integridad del algoritmo de watermark - SOLO EN MEMORIA"""
     
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Validar tipo de archivo
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
     
+    # Leer archivo en memoria
+    image_data = await file.read()
+    
+    if len(image_data) == 0:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
+    
+    # Generar hash de prueba
     test_hash = hashlib.sha256(f"test_{uuid.uuid4().hex}".encode()).hexdigest()
     
-    from app.utils.dct_watermark import test_watermark_integrity
-    success = test_watermark_integrity(temp_path, test_hash)
+    # Probar el algoritmo en memoria
+    success = test_watermark_integrity_memory(image_data, test_hash)
     
-    try:
-        os.remove(temp_path)
-        temp_marked = temp_path.replace('.', '_temp_marked.')
-        if os.path.exists(temp_marked):
-            os.remove(temp_marked)
-    except:
-        pass
+    message = "OK: La imagen es compatible con el algoritmo" if success else "ERROR: La imagen no tiene suficiente calidad para marcas de agua invisibles" 
     
     return {
         "test_passed": success,
         "hash_used": test_hash,
-        "message": "✅ Algoritmo funcionando correctamente" if success else "❌ Error en el algoritmo"
+        "message": message,
+        "recommendation": "Prueba con una imagen de mayor resolución o menos comprimida" if not success else "Esta imagen funcionará perfectamente"
     }

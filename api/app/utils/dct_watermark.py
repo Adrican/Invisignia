@@ -1,28 +1,33 @@
 import cv2
 import numpy as np
 import hashlib
+import io
+from PIL import Image
 
 def text_to_bits(hexstr, length=256):
     binary = bin(int(hexstr, 16))[2:].zfill(256)
     return [int(b) for b in binary[:length]]
 
-def embed_watermark(input_path, output_path, hash_hex):
-    img = cv2.imread(input_path)
+def embed_watermark_memory(image_data: bytes, hash_hex: str) -> bytes:
+    """Procesar imagen directamente en memoria sin guardar archivos"""
+    # Convertir bytes a imagen OpenCV
+    nparr = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
     if img is None:
         raise ValueError("No se pudo cargar la imagen")
     
-    # convertir rgb a YCrCb
+    # Convertir RGB a YCrCb
     ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     Y = ycrcb[:,:,0].astype(np.float32)
     
     bits = text_to_bits(hash_hex, 256)
     rows, cols = Y.shape
     
-
     if rows < 128 or cols < 128:
         raise ValueError("La imagen es demasiado pequeña")
     
-    # meter marca en centro de la imagen
+    # Meter marca en centro de la imagen
     start_row = rows // 4
     end_row = rows - rows // 4
     start_col = cols // 4
@@ -31,7 +36,7 @@ def embed_watermark(input_path, output_path, hash_hex):
     bit_idx = 0
     positions = []
     
-    # espaciar marcas
+    # Espaciar marcas
     for i in range(start_row, end_row - 8, 20):  
         for j in range(start_col, end_col - 8, 20):
             if bit_idx >= len(bits):
@@ -68,12 +73,20 @@ def embed_watermark(input_path, output_path, hash_hex):
     
     ycrcb[:,:,0] = Y.astype(np.uint8)
     marked_img = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
-    cv2.imwrite(output_path, marked_img)
     
-    return positions
+    # Convertir imagen procesada de vuelta a bytes
+    success, encoded_img = cv2.imencode('.png', marked_img)
+    if not success:
+        raise ValueError("Error al codificar la imagen procesada")
+    
+    return encoded_img.tobytes()
 
-def extract_watermark(input_path, length=256):
-    img = cv2.imread(input_path)
+def extract_watermark_memory(image_data: bytes, length=256) -> str:
+    """Extraer marca de agua directamente de datos en memoria"""
+    # Convertir bytes a imagen OpenCV
+    nparr = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
     if img is None:
         raise ValueError("No se pudo cargar la imagen")
     
@@ -119,9 +132,47 @@ def extract_watermark(input_path, length=256):
     except ValueError:
         return "0" * 64
 
+def test_watermark_integrity_memory(image_data: bytes, hash_hex: str) -> bool:
+    """Función para probar que el watermark funciona correctamente - solo en memoria"""
+    print("TEST: Testeando integridad del watermark en memoria...")
+    
+    try:
+        # Verificar que la imagen se puede cargar
+        nparr = np.frombuffer(image_data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            print("ERROR: No se pudo cargar la imagen")
+            return False
+        
+        # Verificar tamaño mínimo
+        height, width = img.shape[:2]
+        if height < 128 or width < 128:
+            print(f"ERROR: Imagen demasiado pequeña: {width}x{height} (mínimo 128x128)")
+            return False
+        
+        # Procesar imagen con marca en memoria
+        marked_data = embed_watermark_memory(image_data, hash_hex)
+        
+        # Extraer inmediatamente
+        extracted = extract_watermark_memory(marked_data)
+        
+        success = hash_hex == extracted
+        
+        print(f"Hash original: {hash_hex[:16]}...")
+        print(f"Hash extraído: {extracted[:16]}...")
+        print(f"¿Coinciden?: {'OK: SI' if success else 'ERROR: NO'}")
+        
+        return success
+        
+    except Exception as e:
+        print(f"ERROR: Error en test: {str(e)}")
+        return False
+
 
 def create_debug_image(input_path, output_path):
-    """Crear imagen para ver donde estan las marcas"""
+    """Crear imagen para ver donde están las marcas - SOLO PARA DEBUG"""
+    print("WARNING: Función de debug que crea archivos")
     img = cv2.imread(input_path)
     ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     Y = ycrcb[:,:,0].astype(np.float32)
@@ -140,26 +191,8 @@ def create_debug_image(input_path, output_path):
     
     cv2.imwrite(output_path, debug_img)
 
-# funcion para testear la marca de agua en las imagenes antes de hacer el proceso.
-def test_watermark_integrity(input_path, hash_hex):
-    """Función para probar que el watermark funciona correctamente"""
-    print("Testeando integridad del watermark...")
-    
-    # crear imagen temporal con marca
-    temp_marked = input_path.replace('.', '_temp_marked.')
-    embed_watermark(input_path, temp_marked, hash_hex)
-    
-    # extraer inmediatamente
-    extracted = extract_watermark(temp_marked)
-    
-    print(f"Hash original: {hash_hex}")
-    print(f"Hash extraído: {extracted}")
-    print(f"¿Coinciden?: {'SÍ' if hash_hex == extracted else 'NO'}")
-    
-    return hash_hex == extracted
 
-
-# Función para comparar imágenes visualmente
+# Función para comparar imágenes
 def compare_images(original_path, marked_path, output_path):
     """Genera una imagen de diferencias para ver qué tanto cambió"""
     original = cv2.imread(original_path)
@@ -169,10 +202,8 @@ def compare_images(original_path, marked_path, output_path):
         print("Error al cargar las imágenes")
         return
     
-    # Calcular diferencia absoluta
     diff = cv2.absdiff(original, marked)
     
-    # Amplificar las diferencias para hacerlas más visibles
     diff_enhanced = cv2.multiply(diff, 10)
     
     cv2.imwrite(output_path, diff_enhanced)

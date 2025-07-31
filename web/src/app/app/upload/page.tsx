@@ -76,7 +76,24 @@ export default function UploadPage() {
       }
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el archivo');
+      // Extraer solo el mensaje del error, sin las llaves JSON
+      let errorMessage = 'Error al procesar el archivo';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Si el mensaje contiene JSON, extraer solo el detail
+        if (errorMessage.includes('La imagen no tiene suficiente calidad')) {
+          errorMessage = 'La imagen no tiene suficiente calidad para agregar una marca de agua invisible. Intenta con una imagen de mayor resolución o menos comprimida.';
+        }
+      }
+      
+      // Agregar sugerencias si es problema de calidad
+      if (errorMessage.includes('no tiene suficiente calidad')) {
+        setError(`❌ ${errorMessage}\n\n💡 Sugerencias:\n• Usa una imagen de mayor resolución\n• Evita imágenes muy comprimidas\n• Prueba con formato PNG en lugar de JPG`);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -146,6 +163,29 @@ export default function UploadPage() {
                   <p className="text-xs text-green-600 mt-1">
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
+                  
+                  {/* Botones para cambiar imagen */}
+                  <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>📷</span>
+                      <span>Cambiar por foto</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <span>🖼️</span>
+                      <span>Cambiar por galería</span>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -232,12 +272,12 @@ export default function UploadPage() {
               disabled={!selectedFile || !purpose.trim() || isUploading}
               className="w-full"
             >
-              {isUploading ? 'Procesando...' : 'Procesar y Descargar'}
+              {isUploading ? 'Analizando imagen...' : 'Procesar y Descargar'}
             </Button>
 
             <div className="text-xs text-gray-500 text-center">
               <p>Formatos soportados: JPG, PNG, BMP</p>
-              <p>El archivo marcado se descargará automáticamente</p>
+              <p>El sistema verificará automáticamente la calidad de la imagen</p>
             </div>
           </CardContent>
         </Card>
