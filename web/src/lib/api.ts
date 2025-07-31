@@ -118,20 +118,30 @@ export const apiClient = new ApiClient();
 
 // para movil
 const getApiBase = () => {
-  // Si estamos en el servidor (SSR), usar localhost
+  // Si estamos en el servidor (SSR), usar variable de entorno
   if (typeof window === 'undefined') {
-    return 'http://localhost:8000';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   }
   
   // Si estamos en el cliente (browser)
   const hostname = window.location.hostname;
   
-  // Si accedemos por IP (móvil), usar esa IP para la API
+  // Producción - dominios finales
+  if (hostname === 'invisignia.com' || hostname === 'app.invisignia.com') {
+    return 'https://api.invisignia.com';
+  }
+  
+  // Producción - Vercel temporales  
+  if (hostname.includes('vercel.app')) {
+    return 'https://invisignia-api.onrender.com';
+  }
+  
+  // Desarrollo móvil - usar IP local
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
     return `http://${hostname}:8000`;
   }
   
-  // Default para localhost
+  // Desarrollo local
   return 'http://localhost:8000';
 };
 

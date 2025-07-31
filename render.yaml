@@ -12,8 +12,8 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: /opt/render/project/src/api
     healthCheckPath: /
     autoDeploy: true
-    branch: main
+    branch: development
     rootDir: .
