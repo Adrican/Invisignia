@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: invisignia-api
+    env: python
+    buildCommand: "cd api && pip install -r requirements.txt"
+    startCommand: "cd api && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+    healthCheckPath: /
+    autoDeploy: true
+    branch: main
+    rootDir: .
