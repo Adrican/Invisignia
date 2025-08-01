@@ -13,9 +13,9 @@ environment = os.getenv("ENVIRONMENT", "development")
 if environment == "production":
     allowed_origins = [
         "https://invisignia.com",
+        "https://www.invisignia.com",
         "https://app.invisignia.com",
-        "https://invisignia-web.vercel.app",
-        "https://invisignia-app.vercel.app",
+        "https://invisignia.vercel.app",
     ]
 else:
     # Desarrollo
