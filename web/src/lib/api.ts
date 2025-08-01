@@ -14,7 +14,7 @@ const getApiBase = () => {
   
   // Producción - Vercel temporales  
   if (hostname.includes('vercel.app')) {
-    return 'https://api.invisignia.com';  // ✅ CORREGIDO - usar tu API real
+    return 'https://api.invisignia.com';
   }
   
   // Desarrollo móvil - usar IP local

@@ -6,6 +6,8 @@ from app.routes.watermark import router as watermark_router
 from app.routes.auth import router as auth_router
 import os
 
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="Invisignia API", version="1.0.0")
 
 environment = os.getenv("ENVIRONMENT", "development")
