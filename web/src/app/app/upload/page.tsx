@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiClient } from '@/lib/api';
+import { compressImage, formatFileSize } from '@/lib/imageUtils';
 
 export default function UploadPage() {
   const { user } = useAuth();
@@ -16,20 +17,41 @@ export default function UploadPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [purpose, setPurpose] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
         setError('Solo se permiten archivos de imagen');
         return;
       }
-      setSelectedFile(file);
+      
+      setOriginalFile(file);
       setError('');
+      
+      if (file.size > 1200 * 1024) {
+        setIsCompressing(true);
+        try {
+          const compressedFile = await compressImage(file, { 
+            maxSizeKB: 1200, 
+            minQuality: 0.7 
+          });
+          setSelectedFile(compressedFile);
+        } catch (err) {
+          setError('Error al comprimir la imagen');
+          return;
+        } finally {
+          setIsCompressing(false);
+        }
+      } else {
+        setSelectedFile(file);
+      }
     }
   };
 
@@ -56,7 +78,7 @@ export default function UploadPage() {
     try {
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
       
-      const originalName = selectedFile.name;
+      const originalName = originalFile?.name || selectedFile.name;
       const nameParts = originalName.split('.');
       const extension = nameParts.pop();
       const baseName = nameParts.join('.');
@@ -66,6 +88,7 @@ export default function UploadPage() {
       
       setSuccess(true);
       setSelectedFile(null);
+      setOriginalFile(null);
       setPurpose('');
       
       if (galleryInputRef.current) {
@@ -76,21 +99,18 @@ export default function UploadPage() {
       }
       
     } catch (err) {
-      // Extraer solo el mensaje del error, sin las llaves JSON
       let errorMessage = 'Error al procesar el archivo';
       
       if (err instanceof Error) {
         errorMessage = err.message;
         
-        // Si el mensaje contiene JSON, extraer solo el detail
         if (errorMessage.includes('La imagen no tiene suficiente calidad')) {
           errorMessage = 'La imagen no tiene suficiente calidad para agregar una marca de agua invisible. Intenta con una imagen de mayor resolución o menos comprimida.';
         }
       }
       
-      // Agregar sugerencias si es problema de calidad
       if (errorMessage.includes('no tiene suficiente calidad')) {
-        setError(`❌ ${errorMessage}\n\n💡 Sugerencias:\n• Usa una imagen de mayor resolución\n• Evita imágenes muy comprimidas\n• Prueba con formato PNG en lugar de JPG`);
+        setError(`${errorMessage}\n\nSugerencias:\n• Usa una imagen de mayor resolución\n• Evita imágenes muy comprimidas\n• Prueba con formato PNG en lugar de JPG`);
       } else {
         setError(errorMessage);
       }
@@ -103,14 +123,32 @@ export default function UploadPage() {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
-        setSelectedFile(file);
+        setOriginalFile(file);
         setError('');
+        
+        if (file.size > 1200 * 1024) {
+          setIsCompressing(true);
+          try {
+            const compressedFile = await compressImage(file, { 
+              maxSizeKB: 1200, 
+              minQuality: 0.7 
+            });
+            setSelectedFile(compressedFile);
+          } catch (err) {
+            setError('Error al comprimir la imagen');
+            return;
+          } finally {
+            setIsCompressing(false);
+          }
+        } else {
+          setSelectedFile(file);
+        }
       } else {
         setError('Solo se permiten archivos de imagen');
       }
@@ -150,19 +188,37 @@ export default function UploadPage() {
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'
-              }`}
+              } ${isCompressing ? 'border-blue-300 bg-blue-50' : ''}`}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
             >
-              {selectedFile ? (
+              {isCompressing ? (
+                <div>
+                  <div className="text-blue-600 text-4xl mb-2">⏳</div>
+                  <p className="text-sm font-medium text-blue-700">
+                    Comprimiendo imagen...
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Optimizando para mejor rendimiento
+                  </p>
+                </div>
+              ) : selectedFile ? (
                 <div>
                   <div className="text-green-600 text-4xl mb-2">✓</div>
                   <p className="text-sm font-medium text-green-700">
-                    {selectedFile.name}
+                    {originalFile?.name || selectedFile.name}
                   </p>
-                  <p className="text-xs text-green-600 mt-1">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                  <div className="text-xs text-green-600 mt-1 space-y-1">
+                    {originalFile && originalFile.size !== selectedFile.size && (
+                      <>
+                        <p>Original: {formatFileSize(originalFile.size)}</p>
+                        <p>Optimizada: {formatFileSize(selectedFile.size)}</p>
+                      </>
+                    )}
+                    {(!originalFile || originalFile.size === selectedFile.size) && (
+                      <p>{formatFileSize(selectedFile.size)}</p>
+                    )}
+                  </div>
                   
                   {/* Botones para cambiar imagen */}
                   <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
@@ -269,7 +325,7 @@ export default function UploadPage() {
             {/* Upload Button */}
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile || !purpose.trim() || isUploading}
+              disabled={!selectedFile || !purpose.trim() || isUploading || isCompressing}
               className="w-full"
             >
               {isUploading ? 'Analizando imagen...' : 'Procesar y Descargar'}
@@ -277,7 +333,7 @@ export default function UploadPage() {
 
             <div className="text-xs text-gray-500 text-center">
               <p>Formatos soportados: JPG, PNG, BMP</p>
-              <p>El sistema verificará automáticamente la calidad de la imagen</p>
+              <p>Las imágenes se optimizan automáticamente para mejor rendimiento</p>
             </div>
           </CardContent>
         </Card>
