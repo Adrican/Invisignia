@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // La raíz (/) ahora será la landing page pública
+  // / es la landing page pública
   // Solo redirigir a /app si hay token Y se está accediendo a rutas protegidas
   
   return NextResponse.next();

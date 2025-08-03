@@ -170,10 +170,15 @@ def test_watermark_integrity_memory(image_data: bytes, hash_hex: str) -> bool:
         return False
 
 
-def create_debug_image(input_path, output_path):
-    """Crear imagen para ver donde están las marcas - SOLO PARA DEBUG"""
-    print("WARNING: Función de debug que crea archivos")
-    img = cv2.imread(input_path)
+def create_debug_image_memory(image_data: bytes) -> bytes:
+    """Crear imagen debug EN MEMORIA para ver ubicaciones de watermarks"""
+
+    nparr = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img is None:
+        raise ValueError("No se pudo cargar la imagen")
+    
     ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     Y = ycrcb[:,:,0].astype(np.float32)
     
@@ -189,22 +194,33 @@ def create_debug_image(input_path, output_path):
         for j in range(start_col, end_col - 8, 20):
             cv2.rectangle(debug_img, (j, i), (j+8, i+8), (0, 255, 0), 1)
     
-    cv2.imwrite(output_path, debug_img)
+    success, encoded_img = cv2.imencode('.png', debug_img)
+    if not success:
+        raise ValueError("Error al codificar imagen debug")
+    
+    return encoded_img.tobytes()
 
-
-# Función para comparar imágenes
-def compare_images(original_path, marked_path, output_path):
-    """Genera una imagen de diferencias para ver qué tanto cambió"""
-    original = cv2.imread(original_path)
-    marked = cv2.imread(marked_path)
+def compare_images_memory(original_data: bytes, marked_data: bytes) -> bytes:
+    """Comparar imágenes EN MEMORIA y generar imagen de diferencias"""
+    # Cargar ambas imágenes
+    original_arr = np.frombuffer(original_data, np.uint8)
+    marked_arr = np.frombuffer(marked_data, np.uint8)
+    
+    original = cv2.imdecode(original_arr, cv2.IMREAD_COLOR)
+    marked = cv2.imdecode(marked_arr, cv2.IMREAD_COLOR)
     
     if original is None or marked is None:
-        print("Error al cargar las imágenes")
-        return
+        raise ValueError("Error al cargar las imágenes para comparar")
+    
+    if original.shape != marked.shape:
+        marked = cv2.resize(marked, (original.shape[1], original.shape[0]))
     
     diff = cv2.absdiff(original, marked)
     
     diff_enhanced = cv2.multiply(diff, 10)
     
-    cv2.imwrite(output_path, diff_enhanced)
-    print(f"Imagen de diferencias guardada en: {output_path}")
+    success, encoded_img = cv2.imencode('.png', diff_enhanced)
+    if not success:
+        raise ValueError("Error al codificar imagen de diferencias")
+    
+    return encoded_img.tobytes()

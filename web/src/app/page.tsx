@@ -31,7 +31,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Seccion */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -59,7 +59,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Seccion */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -122,7 +122,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* Seccion */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -169,7 +169,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Use Cases Section */}
+      {/* Casos uso */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -192,7 +192,7 @@ export default function HomePage() {
               <CardContent>
                 <CardDescription>
                   Protege contratos, certificados y documentos legales con tu firma
-                  invisible.
+                  invisible. <b>*PRÓXIMAMENTE</b>
                 </CardDescription>
               </CardContent>
             </Card>
@@ -255,7 +255,7 @@ export default function HomePage() {
             </div>
             <div className="mt-8 pt-8 border-t border-gray-800 text-sm text-gray-400">
               <p>
-                &copy; 2025 Invisignia. Sistema de marcas de agua invisibles.
+                &copy; 2025 Invisignia. Adrián Canas Ramos.
               </p>
             </div>
           </div>

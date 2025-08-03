@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, Form, File, Depends, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Watermark, User
@@ -8,6 +8,7 @@ from app.utils.dct_watermark import embed_watermark_memory, extract_watermark_me
 import hashlib
 import uuid
 from typing import List
+from io import BytesIO
 
 router = APIRouter()
 
@@ -178,3 +179,51 @@ async def test_watermark_algorithm(
         "message": message,
         "recommendation": "Prueba con una imagen de mayor resolución o menos comprimida" if not success else "Esta imagen funcionará perfectamente"
     }
+
+@router.post("/debug/create-debug-image/")
+async def create_debug_image_endpoint(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """TEMPORAL: Crear imagen debug para ver ubicaciones de watermarks"""
+    
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
+    
+    image_data = await file.read()
+    
+    # Procesar imagen para crear debug
+    from ..utils.dct_watermark import create_debug_image_memory
+    debug_image_data = create_debug_image_memory(image_data)
+    
+    return StreamingResponse(
+        BytesIO(debug_image_data),  # ✅ Ahora funcionará
+        media_type="image/png",
+        headers={"Content-Disposition": f"attachment; filename=debug_{file.filename}"}
+    )
+
+@router.post("/debug/compare-images/")
+async def compare_images_endpoint(
+    original: UploadFile = File(..., description="Imagen original"),
+    marked: UploadFile = File(..., description="Imagen con watermark"),
+    current_user: User = Depends(get_current_user)
+):
+    """TEMPORAL: Comparar imagen original vs marcada"""
+    
+    # Validar archivos
+    for f in [original, marked]:
+        if not f.content_type or not f.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
+    
+    original_data = await original.read()
+    marked_data = await marked.read()
+    
+    # Generar imagen de diferencias
+    from ..utils.dct_watermark import compare_images_memory
+    diff_image_data = compare_images_memory(original_data, marked_data)
+    
+    return StreamingResponse(
+        BytesIO(diff_image_data),
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=differences.png"}
+    )

@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(1, "La contraseña es requerida"),
+  email: z.email("Este email no es válido"),
+  password: z.string().min(1, "Se requiere contraseña"),
 });
 
 export const registerSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.email("Este email no es válido"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
   confirmPassword: z.string().min(1, "Confirma tu contraseña"),
 }).refine((data) => data.password === data.confirmPassword, {
