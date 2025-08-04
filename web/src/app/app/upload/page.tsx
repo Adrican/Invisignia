@@ -82,10 +82,12 @@ export default function UploadPage() {
       setError('Solo se permiten archivos de imagen');
       return;
     }
+    /*
     if (file.size > 10 * 1024 * 1024) {
       setError('La imagen no puede superar los 10MB');
       return;
     }
+      */
     setOriginalFile(file);
     setError('');
     setSuccess(false);
@@ -141,13 +143,26 @@ export default function UploadPage() {
       if (galleryInputRef.current) galleryInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     } catch (err) {
-      let msg = 'Error al procesar el archivo';
-      if (err instanceof Error) msg = err.message;
-      setError(msg);
+      let errorMessage = 'Error al procesar el archivo';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        if (errorMessage.includes('La imagen no tiene suficiente calidad')) {
+          errorMessage = 'La imagen no tiene suficiente calidad para agregar una marca de agua invisible. Intenta con una imagen de mayor resolución o menos comprimida.';
+        }
+      }
+      
+      if (errorMessage.includes('no tiene suficiente calidad')) {
+        setError(`❌ ${errorMessage}\n\n💡 Sugerencias:\n• Usa una imagen de mayor resolución\n• Evita imágenes muy comprimidas\n• Prueba con formato PNG en lugar de JPG`);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsUploading(false);
     }
   };
+  
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
@@ -156,10 +171,12 @@ export default function UploadPage() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Button variant="ghost" onClick={() => router.push('/app')}>
-              ← Volver
-            </Button>
-            <h1 className="text-xl font-semibold">Subir y Marcar</h1>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => router.push('/app')}>
+                ← Volver
+              </Button>
+              <h1 className="text-xl font-semibold">Subir y Marcar</h1>
+            </div>
           </div>
         </div>
       </header>
@@ -168,7 +185,7 @@ export default function UploadPage() {
           <CardHeader>
             <CardTitle>Subir Imagen</CardTitle>
             <CardDescription>
-              Hasta 10 MB. Se comprime solo si supera 800 KB según tus reglas.
+              Selecciona una imagen para añadir una marca de agua invisible.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -245,34 +262,48 @@ export default function UploadPage() {
               />
             </div>
 
+            {/* Purpose Input */}
             <div className="space-y-2">
-              <Label htmlFor="purpose">Propósito de la marca</Label>
+              <Label htmlFor="purpose">Propósito de la marca de agua</Label>
               <Input
                 id="purpose"
+                placeholder="Ej: Propiedad de Juan Pérez, Documento confidencial, etc."
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                placeholder="Ej: Préstamo de coche Renault"
+                className={error && !purpose ? 'border-red-500' : ''}
               />
+              <p className="text-xs text-gray-500">
+                Este texto se incrustará de forma invisible en la imagen
+              </p>
             </div>
 
+            {/* Error Message */}
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
                 {error}
               </div>
             )}
+
+            {/* Success Message */}
             {success && (
               <div className="p-3 text-sm text-green-500 bg-green-50 border border-green-200 rounded">
-                ¡Archivo procesado y descargado!
+                ¡Archivo procesado y descargado correctamente!
               </div>
             )}
 
+            {/* Upload Button */}
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile || !purpose.trim() || isUploading || isCompressing}
+              disabled={!selectedFile || !purpose.trim() || isUploading}
               className="w-full"
             >
               {isUploading ? 'Analizando imagen...' : 'Procesar y Descargar'}
             </Button>
+
+            <div className="text-xs text-gray-500 text-center">
+              <p>Formatos soportados: JPG, PNG, BMP</p>
+              <p>El sistema verificará automáticamente la calidad de la imagen</p>
+            </div>
           </CardContent>
         </Card>
       </main>
