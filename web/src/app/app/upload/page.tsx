@@ -24,34 +24,84 @@ export default function UploadPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  // Aplica las reglas de compresión según el tamaño
+  const processFile = async (file: File) => {
+    const kb = file.size / 1024;
+    // Más de 5 MB (5120 KB) hasta 10 MB → comprime al 40%
+    if (kb > 5120) {
+      const targetKB = kb * 0.40;
+      return await compressImage(file, { maxSizeKB: targetKB, minQuality: 0.85 });
+    }
+    // Entre 2 MB y 5 MB → comprime al 50%
+    if (kb > 2048) {
+      const targetKB = kb * 0.50;
+      return await compressImage(file, { maxSizeKB: targetKB, minQuality: 0.85 });
+    }
+    // Menos de 2 MB → quita 800 KB si pesa más de 800 KB
+    if (kb > 800) {
+      const targetKB = kb - 800;
+      return await compressImage(file, { maxSizeKB: targetKB, minQuality: 0.85 });
+    }
+    // Si ya pesa ≤ 800 KB, no tocar
+    return file;
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError('Solo se permiten archivos de imagen');
-        return;
+    if (!file || !file.type.startsWith('image/')) {
+      setError('Solo se permiten archivos de imagen');
+      return;
+    }
+    /*if (file.size > 10 * 1024 * 1024) {
+      setError('La imagen no puede superar los 10MB');
+      return;
+    }*/
+    setOriginalFile(file);
+    setError('');
+    setSuccess(false);
+
+    if (file.size > 800 * 1024) {
+      setIsCompressing(true);
+      try {
+        const compressed = await processFile(file);
+        setSelectedFile(compressed);
+      } catch {
+        setError('Error al comprimir la imagen');
+      } finally {
+        setIsCompressing(false);
       }
-      
-      setOriginalFile(file);
-      setError('');
-      
-      if (file.size > 1200 * 1024) {
-        setIsCompressing(true);
-        try {
-          const compressedFile = await compressImage(file, { 
-            maxSizeKB: 1200, 
-            minQuality: 0.7 
-          });
-          setSelectedFile(compressedFile);
-        } catch (err) {
-          setError('Error al comprimir la imagen');
-          return;
-        } finally {
-          setIsCompressing(false);
-        }
-      } else {
-        setSelectedFile(file);
+    } else {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) {
+      setError('Solo se permiten archivos de imagen');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('La imagen no puede superar los 10MB');
+      return;
+    }
+    setOriginalFile(file);
+    setError('');
+    setSuccess(false);
+
+    if (file.size > 800 * 1024) {
+      setIsCompressing(true);
+      try {
+        const compressed = await processFile(file);
+        setSelectedFile(compressed);
+      } catch {
+        setError('Error al comprimir la imagen');
+      } finally {
+        setIsCompressing(false);
       }
+    } else {
+      setSelectedFile(file);
     }
   };
 
@@ -77,116 +127,53 @@ export default function UploadPage() {
 
     try {
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
-      
       const originalName = originalFile?.name || selectedFile.name;
-      const nameParts = originalName.split('.');
-      const extension = nameParts.pop();
-      const baseName = nameParts.join('.');
-      const markedFileName = `${baseName}_marked.${extension}`;
-      
-      downloadFile(blob, markedFileName);
-      
+      const parts = originalName.split('.');
+      const ext = parts.pop();
+      const base = parts.join('.');
+      const markedName = `${base}_marked.${ext}`;
+      downloadFile(blob, markedName);
+
       setSuccess(true);
       setSelectedFile(null);
       setOriginalFile(null);
       setPurpose('');
-      
-      if (galleryInputRef.current) {
-        galleryInputRef.current.value = '';
-      }
-      if (cameraInputRef.current) {
-        cameraInputRef.current.value = '';
-      }
-      
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
     } catch (err) {
-      let errorMessage = 'Error al procesar el archivo';
-      
-      if (err instanceof Error) {
-        errorMessage = err.message;
-        
-        if (errorMessage.includes('La imagen no tiene suficiente calidad')) {
-          errorMessage = 'La imagen no tiene suficiente calidad para agregar una marca de agua invisible. Intenta con una imagen de mayor resolución o menos comprimida.';
-        }
-      }
-      
-      if (errorMessage.includes('no tiene suficiente calidad')) {
-        setError(`${errorMessage}\n\nSugerencias:\n• Usa una imagen de mayor resolución\n• Evita imágenes muy comprimidas\n• Prueba con formato PNG en lugar de JPG`);
-      } else {
-        setError(errorMessage);
-      }
+      let msg = 'Error al procesar el archivo';
+      if (err instanceof Error) msg = err.message;
+      setError(msg);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        setOriginalFile(file);
-        setError('');
-        
-        if (file.size > 1200 * 1024) {
-          setIsCompressing(true);
-          try {
-            const compressedFile = await compressImage(file, { 
-              maxSizeKB: 1200, 
-              minQuality: 0.7 
-            });
-            setSelectedFile(compressedFile);
-          } catch (err) {
-            setError('Error al comprimir la imagen');
-            return;
-          } finally {
-            setIsCompressing(false);
-          }
-        } else {
-          setSelectedFile(file);
-        }
-      } else {
-        setError('Solo se permiten archivos de imagen');
-      }
-    }
-  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => router.push('/app')}
-              >
-                ← Volver
-              </Button>
-              <h1 className="text-xl font-semibold text-gray-900">Subir y Marcar</h1>
-            </div>
+            <Button variant="ghost" onClick={() => router.push('/app')}>
+              ← Volver
+            </Button>
+            <h1 className="text-xl font-semibold">Subir y Marcar</h1>
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-2xl mx-auto py-6">
         <Card>
           <CardHeader>
             <CardTitle>Subir Imagen</CardTitle>
             <CardDescription>
-              Selecciona una imagen para añadir una marca de agua invisible
+              Hasta 10 MB. Se comprime solo si supera 800 KB según tus reglas.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* File Upload Area */}
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-8 text-center ${
                 selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'
               } ${isCompressing ? 'border-blue-300 bg-blue-50' : ''}`}
               onDragOver={handleDragOver}
@@ -195,85 +182,52 @@ export default function UploadPage() {
               {isCompressing ? (
                 <div>
                   <div className="text-blue-600 text-4xl mb-2">⏳</div>
-                  <p className="text-sm font-medium text-blue-700">
-                    Comprimiendo imagen...
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Optimizando para mejor rendimiento
-                  </p>
+                  <p className="text-sm font-medium text-blue-700">Comprimiendo imagen...</p>
                 </div>
               ) : selectedFile ? (
                 <div>
                   <div className="text-green-600 text-4xl mb-2">✓</div>
-                  <p className="text-sm font-medium text-green-700">
-                    {originalFile?.name || selectedFile.name}
+                  <p className="font-medium text-green-700">{originalFile?.name}</p>
+                  <p className="text-xs text-green-600">
+                    {formatFileSize(originalFile!.size)} → {formatFileSize(selectedFile.size)}
                   </p>
-                  <div className="text-xs text-green-600 mt-1 space-y-1">
-                    {originalFile && originalFile.size !== selectedFile.size && (
-                      <>
-                        <p>Original: {formatFileSize(originalFile.size)}</p>
-                        <p>Optimizada: {formatFileSize(selectedFile.size)}</p>
-                      </>
-                    )}
-                    {(!originalFile || originalFile.size === selectedFile.size) && (
-                      <p>{formatFileSize(selectedFile.size)}</p>
-                    )}
-                  </div>
-                  
-                  {/* Botones para cambiar imagen */}
-                  <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                  <div className="mt-4 flex gap-2 justify-center">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => cameraInputRef.current?.click()}
-                      className="flex items-center space-x-2"
                     >
-                      <span>📷</span>
-                      <span>Cambiar por foto</span>
+                      📷 Cambiar foto
                     </Button>
-                    
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => galleryInputRef.current?.click()}
-                      className="flex items-center space-x-2"
                     >
-                      <span>🖼️</span>
-                      <span>Cambiar por galería</span>
+                      🖼️ Cambiar galería
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div>
                   <div className="text-gray-400 text-4xl mb-2">📤</div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Arrastra una imagen aquí o elige una opción:
-                  </p>
-                  
-                  {/* Botones separados */}
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <p className="text-sm text-gray-600 mb-4">Arrastra o elige desde:</p>
+                  <div className="flex gap-3 justify-center">
                     <Button
                       variant="outline"
                       onClick={() => cameraInputRef.current?.click()}
-                      className="flex items-center space-x-2"
                     >
-                      <span>📷</span>
-                      <span>Hacer una foto</span>
+                      📷 Foto
                     </Button>
-                    
                     <Button
                       variant="outline"
                       onClick={() => galleryInputRef.current?.click()}
-                      className="flex items-center space-x-2"
                     >
-                      <span>🖼️</span>
-                      <span>Galería</span>
+                      🖼️ Galería
                     </Button>
                   </div>
                 </div>
               )}
-              
-              {/* Input para cámara */}
               <input
                 ref={cameraInputRef}
                 type="file"
@@ -282,8 +236,6 @@ export default function UploadPage() {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
-              {/* Input para galería */}
               <input
                 ref={galleryInputRef}
                 type="file"
@@ -293,36 +245,27 @@ export default function UploadPage() {
               />
             </div>
 
-            {/* Purpose Input */}
             <div className="space-y-2">
-              <Label htmlFor="purpose">Propósito de la marca de agua</Label>
+              <Label htmlFor="purpose">Propósito de la marca</Label>
               <Input
                 id="purpose"
-                placeholder="Ej: Propiedad de Juan Pérez, Documento confidencial, etc."
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
-                className={error && !purpose ? 'border-red-500' : ''}
+                placeholder="Ej: Préstamo de coche Renault"
               />
-              <p className="text-xs text-gray-500">
-                Este texto se incrustará de forma invisible en la imagen
-              </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
                 {error}
               </div>
             )}
-
-            {/* Success Message */}
             {success && (
               <div className="p-3 text-sm text-green-500 bg-green-50 border border-green-200 rounded">
-                ¡Archivo procesado y descargado correctamente!
+                ¡Archivo procesado y descargado!
               </div>
             )}
 
-            {/* Upload Button */}
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || !purpose.trim() || isUploading || isCompressing}
@@ -330,11 +273,6 @@ export default function UploadPage() {
             >
               {isUploading ? 'Analizando imagen...' : 'Procesar y Descargar'}
             </Button>
-
-            <div className="text-xs text-gray-500 text-center">
-              <p>Formatos soportados: JPG, PNG, BMP</p>
-              <p>Las imágenes se optimizan automáticamente para mejor rendimiento</p>
-            </div>
           </CardContent>
         </Card>
       </main>
