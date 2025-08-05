@@ -1,3 +1,5 @@
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -8,8 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-100">
       {/* Header */}
@@ -17,21 +27,58 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-teal-600">Invisignia</h1>
+              <Link
+                href="/"
+                className="text-2xl font-bold text-teal-600 hover:text-teal-700"
+              >
+                Invisignia
+              </Link>
             </div>
+
+            {/* autenticación */}
             <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="ghost">Iniciar Sesión</Button>
-              </Link>
-              <Link href="/register">
-                <Button>Registrarse</Button>
-              </Link>
+              {user ? (
+                // Usuario logueado
+                <>
+                  <div className="hidden sm:flex items-center space-x-4">
+                    <span className="text-sm text-gray-700">Hola, {user.email}</span>
+                    <Link href="/app">
+                      <Button variant="outline">Ir a la App</Button>
+                    </Link>
+                    <Button variant="ghost" onClick={handleLogout}>
+                      Cerrar Sesión
+                    </Button>
+                  </div>
+
+                  {/* Móvil - usuario logueado */}
+                  <div className="sm:hidden flex items-center space-x-2">
+                    <Link href="/app">
+                      <Button variant="outline" size="sm">
+                        App
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="sm" onClick={handleLogout}>
+                      Salir
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                // Usuario no logueado
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost">Iniciar Sesión</Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button>Registrarse</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Seccion */}
+      {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -41,20 +88,30 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Invisignia utiliza tecnología DCT avanzada para incrustar marcas de
             agua completamente invisibles en tus imágenes, garantizando la
-            protección y autenticidad de tus documentos. <b>Sin guardar tus documentos 
-            en nuestros servidores.</b>
+            protección y autenticidad de tus documentos.{" "}
+            <b>Sin guardar tus documentos en nuestros servidores.</b>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" className="w-full sm:w-auto">
-                Comenzar Gratis
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                Ya tengo cuenta
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/app">
+                <Button size="lg" className="w-full sm:w-auto">
+                  Acceder a la Aplicación
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/register">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Comenzar Gratis
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                    Ya tengo cuenta
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -229,7 +286,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">

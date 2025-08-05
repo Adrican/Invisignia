@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AllDocuments from '@/components/AllDocuments';
+import Link from 'next/link';
 
 export default function AppPage() {
   const { user, logout, isLoading } = useAuth();
@@ -41,7 +42,9 @@ export default function AppPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-teal-600">Invisignia</h1>
+              <Link href="/" className="text-2xl font-bold text-teal-600 hover:text-teal-700">
+                Invisignia
+              </Link>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4">
               <span className="text-xs sm:text-sm text-gray-700 truncate">
