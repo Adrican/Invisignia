@@ -142,20 +142,20 @@ export default function AllDocuments() {
           {history.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors min-w-0"
             >
-              <div className="flex items-center space-x-3">
-                <div className="text-green-600 text-lg">✓</div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">
-                    {truncateText(item.purpose)}
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                <div className="text-green-600 text-lg flex-shrink-0">✓</div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900 text-sm truncate" title={item.purpose}>
+                    {truncateText(item.purpose, 40)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 truncate">
                     ID: {item.hash_id.substring(0, 8)}...
                   </p>
                 </div>
               </div>
-              <div className="text-xs text-gray-500 text-right">
+              <div className="text-xs text-gray-500 text-right flex-shrink-0 ml-2">
                 {formatDate(item.created_at)}
               </div>
             </div>

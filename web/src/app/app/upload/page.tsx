@@ -137,22 +137,25 @@ export default function UploadPage() {
       // Etapa 1: Validando imagen
       setUploadStage('Validando imagen...');
       setUploadProgress(20);
-      await new Promise(resolve => setTimeout(resolve, 300)); // simulamos delay
+      await new Promise(resolve => setTimeout(resolve, 500)); // simulamos delay
 
       // Etapa 2: Analizando calidad
       setUploadStage('Analizando calidad de imagen...');
       setUploadProgress(40);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 700));
 
       // Etapa 3: Procesando marca de agua
       setUploadStage('Incrustando marca de agua invisible...');
       setUploadProgress(60);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setUploadStage('Preparando descarga...');
+      setUploadProgress(90);
 
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
       
       // Etapa 4: Finalizando
-      setUploadStage('Preparando descarga...');
-      setUploadProgress(90);
+
       
       const originalName = originalFile?.name || selectedFile.name;
       const parts = originalName.split('.');
@@ -204,6 +207,21 @@ export default function UploadPage() {
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
+  const truncateFileName = (fileName: string, maxLength: number = 30) => {
+    if (fileName.length <= maxLength) return fileName;
+    
+    const parts = fileName.split('.');
+    const extension = parts.pop();
+    const baseName = parts.join('.');
+    
+    if (baseName.length <= maxLength - extension!.length - 1) {
+      return fileName;
+    }
+    
+    const truncatedBase = baseName.substring(0, maxLength - extension!.length - 4);
+    return `${truncatedBase}...${extension}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -218,8 +236,8 @@ export default function UploadPage() {
           </div>
         </div>
       </header>
-      <main className="max-w-2xl mx-auto py-6">
-        <Card>
+      <main className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Subir Imagen</CardTitle>
             <CardDescription>
@@ -242,7 +260,9 @@ export default function UploadPage() {
               ) : selectedFile ? (
                 <div>
                   <div className="text-green-600 text-4xl mb-2">✓</div>
-                  <p className="font-medium text-green-700">{originalFile?.name}</p>
+                  <p className="font-medium text-green-700 truncate break-all" title={originalFile?.name}>
+                    {truncateFileName(originalFile?.name || '')}
+                  </p>
                   <p className="text-xs text-green-600">
                     {formatFileSize(originalFile!.size)} → {formatFileSize(selectedFile.size)}
                   </p>

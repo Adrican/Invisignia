@@ -43,12 +43,13 @@ export default function AppPage() {
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-teal-600">Invisignia</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4">
+              <span className="text-xs sm:text-sm text-gray-700 truncate">
                 Bienvenido, {user.email}
               </span>
-              <Button variant="outline" onClick={handleLogout}>
-                Cerrar Sesión
+              <Button variant="outline" onClick={handleLogout} size="sm" className="self-end sm:self-auto">
+                <span className="hidden sm:inline">Cerrar Sesión</span>
+                <span className="sm:hidden">Cerrar Sesión</span>
               </Button>
             </div>
           </div>

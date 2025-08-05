@@ -68,10 +68,11 @@ export default function VerifyPage() {
       setVerifyStage('Verificando autenticidad...');
       setVerifyProgress(75);
 
-      const response = await apiClient.verifyWatermark(selectedFile, user.token);
-      
       setVerifyProgress(100);
       setVerifyStage('¡Verificación completada!');
+      
+
+      const response = await apiClient.verifyWatermark(selectedFile, user.token);
       setResult(response);
       
     } catch (err) {
@@ -115,6 +116,21 @@ export default function VerifyPage() {
       minute: '2-digit',
     });
 
+  const truncateFileName = (fileName: string, maxLength: number = 30) => {
+    if (fileName.length <= maxLength) return fileName;
+    
+    const parts = fileName.split('.');
+    const extension = parts.pop();
+    const baseName = parts.join('.');
+    
+    if (baseName.length <= maxLength - extension!.length - 1) {
+      return fileName;
+    }
+    
+    const truncatedBase = baseName.substring(0, maxLength - extension!.length - 4);
+    return `${truncatedBase}...${extension}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -130,8 +146,8 @@ export default function VerifyPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Card>
+      <main className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Verificar Imagen</CardTitle>
             <CardDescription>
@@ -149,7 +165,9 @@ export default function VerifyPage() {
               {selectedFile ? (
                 <div>
                   <div className="text-blue-600 text-4xl mb-2">📄</div>
-                  <p className="text-sm font-medium text-blue-700">{selectedFile.name}</p>
+                  <p className="text-sm font-medium text-blue-700 truncate break-all" title={selectedFile.name}>
+                    {truncateFileName(selectedFile.name)}
+                  </p>
                   <p className="text-xs text-blue-600 mt-1">
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
