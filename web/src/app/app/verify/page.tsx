@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress'; 
 import { apiClient } from '@/lib/api';
 
 interface VerifyResult {
@@ -22,6 +23,10 @@ export default function VerifyPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<VerifyResult | null>(null);
+  
+
+  const [verifyProgress, setVerifyProgress] = useState(0);
+  const [verifyStage, setVerifyStage] = useState('');
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -46,14 +51,39 @@ export default function VerifyPage() {
     setIsVerifying(true);
     setError('');
     setResult(null);
+    setVerifyProgress(0);
 
     try {
+      // Etapa 1: Analizando imagen
+      setVerifyStage('Analizando imagen...');
+      setVerifyProgress(25);
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Etapa 2: Extrayendo marca de agua
+      setVerifyStage('Extrayendo marca de agua...');
+      setVerifyProgress(50);
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Etapa 3: Verificando en base de datos
+      setVerifyStage('Verificando autenticidad...');
+      setVerifyProgress(75);
+
       const response = await apiClient.verifyWatermark(selectedFile, user.token);
+      
+      setVerifyProgress(100);
+      setVerifyStage('¡Verificación completada!');
       setResult(response);
+      
     } catch (err) {
+      setVerifyProgress(0);
+      setVerifyStage('');
       setError(err instanceof Error ? err.message : 'Error al verificar el archivo');
     } finally {
       setIsVerifying(false);
+      setTimeout(() => {
+        setVerifyProgress(0);
+        setVerifyStage('');
+      }, 2000);
     }
   };
 
@@ -152,6 +182,21 @@ export default function VerifyPage() {
               />
             </div>
 
+            {/* Progress Section*/}
+            {isVerifying && (
+              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm font-medium text-blue-800">{verifyStage}</span>
+                </div>
+                <Progress value={verifyProgress} className="w-full" />
+                <div className="flex justify-between text-xs text-blue-600">
+                  <span>Verificando...</span>
+                  <span>{verifyProgress}%</span>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="p-4 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
                 <div className="flex items-center space-x-2">
@@ -189,7 +234,14 @@ export default function VerifyPage() {
               disabled={!selectedFile || isVerifying}
               className="w-full"
             >
-              {isVerifying ? 'Verificando...' : 'Verificar Marca de Agua'}
+              {isVerifying ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Verificando...</span>
+                </div>
+              ) : (
+                'Verificar Marca de Agua'
+              )}
             </Button>
 
             <div className="text-xs text-gray-500 text-center">

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { apiClient } from '@/lib/api';
 import { compressImage, formatFileSize } from '@/lib/imageUtils';
 
@@ -23,6 +24,10 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  
+  // ← Nuevos estados para progreso detallado
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState('');
 
   // Aplica las reglas de compresión según el tamaño
   const processFile = async (file: File) => {
@@ -126,23 +131,52 @@ export default function UploadPage() {
 
     setIsUploading(true);
     setError('');
+    setUploadProgress(0);
 
     try {
+      // Etapa 1: Validando imagen
+      setUploadStage('Validando imagen...');
+      setUploadProgress(20);
+      await new Promise(resolve => setTimeout(resolve, 300)); // simulamos delay
+
+      // Etapa 2: Analizando calidad
+      setUploadStage('Analizando calidad de imagen...');
+      setUploadProgress(40);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Etapa 3: Procesando marca de agua
+      setUploadStage('Incrustando marca de agua invisible...');
+      setUploadProgress(60);
+
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
+      
+      // Etapa 4: Finalizando
+      setUploadStage('Preparando descarga...');
+      setUploadProgress(90);
+      
       const originalName = originalFile?.name || selectedFile.name;
       const parts = originalName.split('.');
       const ext = parts.pop();
       const base = parts.join('.');
       const markedName = `${base}_marked.${ext}`;
+      
       downloadFile(blob, markedName);
-
+      
+      setUploadProgress(100);
+      setUploadStage('¡Completado!');
       setSuccess(true);
+      
+      // Reset form
       setSelectedFile(null);
       setOriginalFile(null);
       setPurpose('');
       if (galleryInputRef.current) galleryInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
+      
     } catch (err) {
+      setUploadProgress(0);
+      setUploadStage('');
+      
       let errorMessage = 'Error al procesar el archivo';
       
       if (err instanceof Error) {
@@ -160,6 +194,10 @@ export default function UploadPage() {
       }
     } finally {
       setIsUploading(false);
+      setTimeout(() => {
+        setUploadProgress(0);
+        setUploadStage('');
+      }, 2000); // Mantener progreso visible 2 segundos después de completar
     }
   };
   
@@ -271,11 +309,27 @@ export default function UploadPage() {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 className={error && !purpose ? 'border-red-500' : ''}
+                disabled={isUploading} // ← Deshabilitar durante upload
               />
               <p className="text-xs text-gray-500">
                 Este texto se incrustará de forma invisible en la imagen
               </p>
             </div>
+
+            {/* Progress Section - NUEVO */}
+            {isUploading && (
+              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm font-medium text-blue-800">{uploadStage}</span>
+                </div>
+                <Progress value={uploadProgress} className="w-full" />
+                <div className="flex justify-between text-xs text-blue-600">
+                  <span>Procesando...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -297,7 +351,14 @@ export default function UploadPage() {
               disabled={!selectedFile || !purpose.trim() || isUploading}
               className="w-full"
             >
-              {isUploading ? 'Analizando imagen...' : 'Procesar y Descargar'}
+              {isUploading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Procesando...</span>
+                </div>
+              ) : (
+                'Procesar y Descargar'
+              )}
             </Button>
 
             <div className="text-xs text-gray-500 text-center">
