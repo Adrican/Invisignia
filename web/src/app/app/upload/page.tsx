@@ -133,32 +133,26 @@ export default function UploadPage() {
     setError('');
     setUploadProgress(0);
 
-    const fileSizeMB = selectedFile.size / (1024 * 1024);
-    const estimatedTimeMs = Math.min(Math.max(fileSizeMB * 2000, 3000), 10000);
-
     try {
+      // Etapa 1: Validando imagen
       setUploadStage('Validando imagen...');
-      setUploadProgress(5);
+      setUploadProgress(20);
+      await new Promise(resolve => setTimeout(resolve, 300)); // simulamos delay
 
+      // Etapa 2: Analizando calidad
+      setUploadStage('Analizando calidad de imagen...');
+      setUploadProgress(40);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Etapa 3: Procesando marca de agua
       setUploadStage('Incrustando marca de agua invisible...');
-      
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + (85 / (estimatedTimeMs / 300));
-        });
-      }, 300);
+      setUploadProgress(60);
 
-      // llamada  a la API
       const blob = await apiClient.uploadWatermark(selectedFile, purpose, user.token);
       
-      // completar progreso
-      clearInterval(progressInterval);
+      // Etapa 4: Finalizando
       setUploadStage('Preparando descarga...');
-      setUploadProgress(95);
+      setUploadProgress(90);
       
       const originalName = originalFile?.name || selectedFile.name;
       const parts = originalName.split('.');
@@ -203,7 +197,7 @@ export default function UploadPage() {
       setTimeout(() => {
         setUploadProgress(0);
         setUploadStage('');
-      }, 2000);
+      }, 2000); // Mantener progreso visible 2 segundos después de completar
     }
   };
   

@@ -53,31 +53,23 @@ export default function VerifyPage() {
     setResult(null);
     setVerifyProgress(0);
 
-    const fileSizeMB = selectedFile.size / (1024 * 1024);
-    const estimatedTimeMs = Math.min(Math.max(fileSizeMB * 1500, 2000), 10000); // Entre 2-10 segundos
-
     try {
-      setVerifyStage('Preparando imagen...');
-      setVerifyProgress(5);
+      // Etapa 1: Analizando imagen
+      setVerifyStage('Analizando imagen...');
+      setVerifyProgress(25);
+      await new Promise(resolve => setTimeout(resolve, 400));
 
-      setVerifyStage('Procesando marca de agua...');
-      
+      // Etapa 2: Extrayendo marca de agua
+      setVerifyStage('Extrayendo marca de agua...');
+      setVerifyProgress(50);
+      await new Promise(resolve => setTimeout(resolve, 600));
 
-      const progressInterval = setInterval(() => {
-        setVerifyProgress(prev => {
-          if (prev >= 85) {
-            clearInterval(progressInterval);
-            return 85;
-          }
-          return prev + (80 / (estimatedTimeMs / 200)); 
-        });
-      }, 200);
+      // Etapa 3: Verificando en base de datos
+      setVerifyStage('Verificando autenticidad...');
+      setVerifyProgress(75);
 
-      // llamada a la API
       const response = await apiClient.verifyWatermark(selectedFile, user.token);
       
-      // Limpiar intervalo y completar
-      clearInterval(progressInterval);
       setVerifyProgress(100);
       setVerifyStage('¡Verificación completada!');
       setResult(response);
