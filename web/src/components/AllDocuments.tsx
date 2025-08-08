@@ -29,11 +29,13 @@ export default function AllDocuments() {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar el historial';
         
-        // si hay error de credenciales, limpio sesión
+        // Detectar diferentes tipos de errores de autenticación
         if (errorMessage.includes('credenciales') || 
             errorMessage.includes('Unauthorized') || 
-            errorMessage.includes('401')) {
-          clearInvalidSession();
+            errorMessage.includes('401') ||
+            errorMessage.includes('Failed to fetch')) {
+          
+          clearInvalidSession('Tu sesión ha expirado mientras intentábamos cargar tu historial.');
         } else {
           setError(errorMessage);
         }

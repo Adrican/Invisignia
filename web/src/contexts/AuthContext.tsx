@@ -13,8 +13,10 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, token: string) => void;
   logout: () => void;
-  clearInvalidSession: () => void;
+  clearInvalidSession: (reason?: string) => void;
   isLoading: boolean;
+  sessionExpiredMessage: string | null;
+  clearSessionMessage: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,11 +24,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    //compruebo token
     const token = Cookies.get('invisignia_token');
     const email = Cookies.get('invisignia_email');
     
@@ -43,29 +45,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, token: string) => {
     const userData = { email, token };
     setUser(userData);
+    setSessionExpiredMessage(null); // Limpiar mensaje al hacer login
 
-    // guardar 7 dias en las cookies
     Cookies.set('invisignia_token', token, { expires: 7 });
     Cookies.set('invisignia_email', email, { expires: 7 });
   };
 
   const logout = () => {
     setUser(null);
+    setSessionExpiredMessage(null);
     Cookies.remove('invisignia_token');
     Cookies.remove('invisignia_email');
     router.push('/');
   };
 
-  const clearInvalidSession = () => {
-    console.log('Token inválido detectado, limpiando sesión...');
+  const clearInvalidSession = (reason?: string) => {
+    console.log('Sesión inválida detectada:', reason);
+    
+    // mensaje expira la sesio
+    const message = reason || 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+    setSessionExpiredMessage(message);
+    
+    // Limpiar datos de usuario
     setUser(null);
     Cookies.remove('invisignia_token');
     Cookies.remove('invisignia_email');
-    router.push('/login');
+    
+    // redirigir con delay para mostrar el mensaje
+    setTimeout(() => {
+      router.push('/login');
+    }, 100);
+  };
+
+  const clearSessionMessage = () => {
+    setSessionExpiredMessage(null);
+  };
+
+  const contextValue = {
+    user,
+    login,
+    logout,
+    clearInvalidSession,
+    isLoading,
+    sessionExpiredMessage,
+    clearSessionMessage,
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, clearInvalidSession, isLoading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

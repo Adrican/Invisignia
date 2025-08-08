@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, sessionExpiredMessage, clearSessionMessage } = useAuth();
 
   const {
     register,
@@ -29,9 +29,18 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema)
   });
 
+  // Limpiar mensaje de sesión expirada después de un tiempo
+  useEffect(() => {
+    if (sessionExpiredMessage) {
+      const timer = setTimeout(clearSessionMessage, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionExpiredMessage, clearSessionMessage]);
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError('');
+    clearSessionMessage(); // Limpiar mensaje al intentar login
 
     try {
       const response = await apiClient.login(data.email, data.password);
@@ -46,7 +55,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      {/* volver al inicio */}
       <div className="absolute top-4 left-4">
         <Link href="/">
           <Button variant="ghost" className="flex items-center space-x-2">
@@ -56,61 +64,82 @@ export default function LoginPage() {
         </Link>
       </div>
       
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
-          <CardDescription className="text-center">
-            Introduce tus datos para acceder a Invisignia
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                {...register('email')}
-                className={errors.email ? 'border-red-500' : ''}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                {...register('password')}
-                className={errors.password ? 'border-red-500' : ''}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
-                {error}
+      <div className="w-full max-w-md">
+        {/* Mensaje de sesión expirada */}
+        {sessionExpiredMessage && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-yellow-600">⚠️</span>
+              <div>
+                <p className="text-sm font-medium text-yellow-800">Sesión expirada</p>
+                <p className="text-sm text-yellow-700">{sessionExpiredMessage}</p>
               </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            ¿No tienes cuenta?{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Regístrate aquí
-            </Link>
+              <button 
+                onClick={clearSessionMessage}
+                className="text-yellow-400 hover:text-yellow-600 ml-auto"
+              >
+                ×
+              </button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
+            <CardDescription className="text-center">
+              Introduce tus datos para acceder a Invisignia
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  {...register('email')}
+                  className={errors.email ? 'border-red-500' : ''}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  {...register('password')}
+                  className={errors.password ? 'border-red-500' : ''}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                )}
+              </div>
+
+              {error && (
+                <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center text-sm">
+              ¿No tienes cuenta?{' '}
+              <Link href="/register" className="text-blue-600 hover:underline">
+                Regístrate aquí
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

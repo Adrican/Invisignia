@@ -57,10 +57,11 @@ export default function UploadPage() {
       setError('Solo se permiten archivos de imagen');
       return;
     }
-    /*if (file.size > 10 * 1024 * 1024) {
+    // Si el archivo es demasiado grande, mostrar error
+    if (file.size > 10 * 1024 * 1024) {
       setError('La imagen no puede superar los 10MB');
       return;
-    }*/
+    }
     setOriginalFile(file);
     setError('');
     setSuccess(false);
@@ -87,12 +88,6 @@ export default function UploadPage() {
       setError('Solo se permiten archivos de imagen');
       return;
     }
-    /*
-    if (file.size > 10 * 1024 * 1024) {
-      setError('La imagen no puede superar los 10MB');
-      return;
-    }
-      */
     setOriginalFile(file);
     setError('');
     setSuccess(false);
@@ -129,6 +124,11 @@ export default function UploadPage() {
       return;
     }
 
+    if (purpose.length > 255) {
+      setError('El propósito no puede superar los 255 caracteres');
+      return;
+    }
+
     setIsUploading(true);
     setError('');
     setUploadProgress(0);
@@ -161,7 +161,7 @@ export default function UploadPage() {
       const parts = originalName.split('.');
       const ext = parts.pop();
       const base = parts.join('.');
-      const markedName = `${base}_marked.${ext}`;
+      const markedName = `${base}_ivsgn.${ext}`;
       
       downloadFile(blob, markedName);
       
@@ -329,14 +329,20 @@ export default function UploadPage() {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 className={error && !purpose ? 'border-red-500' : ''}
-                disabled={isUploading} // ← Deshabilitar durante upload
+                disabled={isUploading}
+                maxLength={255}
               />
-              <p className="text-xs text-gray-500">
-                Este texto se incrustará de forma invisible en la imagen
-              </p>
+              <div className="flex justify-between">
+                <p className="text-xs text-gray-500">
+                  Este texto se incrustará de forma invisible en la imagen
+                </p>
+                <span className="text-xs text-gray-400">
+                  {purpose.length}/255
+                </span>
+              </div>
             </div>
 
-            {/* Progress Section - NUEVO */}
+            {/* Progress Section*/}
             {isUploading && (
               <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-2">

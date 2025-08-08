@@ -36,11 +36,19 @@ export default function VerifyPage() {
       setError('Solo se permiten archivos de imagen');
       return;
     }
+    /*
+    if (file.size > 10 * 1024 * 1024) {
+    setError('La imagen no puede superar los 10MB');
+    return;
+    
+  }*/
 
     setSelectedFile(file);
     setError('');
     setResult(null);
+    
   };
+
 
   const handleVerify = async () => {
     if (!selectedFile || !user) {

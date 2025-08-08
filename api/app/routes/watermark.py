@@ -19,6 +19,12 @@ async def upload_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not purpose or not purpose.strip():
+        raise HTTPException(status_code=400, detail="El propósito es obligatorio")
+    
+    if len(purpose) > 255:
+        raise HTTPException(status_code=400, detail="El propósito no puede superar los 255 caracteres")
+    
     # Validar tipo de archivo
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
