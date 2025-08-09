@@ -319,7 +319,7 @@ export default function UploadPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-3 lg:hidden">
-                  Toca "Foto" para usar la cámara
+                  Toca &quot;Foto&quot; para usar la cámara
                 </p>
               </div>
             )}
