@@ -57,7 +57,6 @@ export default function UploadPage() {
       setError('Solo se permiten archivos de imagen');
       return;
     }
-    // Si el archivo es demasiado grande, mostrar error
     if (file.size > 10 * 1024 * 1024) {
       setError('La imagen no puede superar los 10MB');
       return;
@@ -231,168 +230,189 @@ export default function UploadPage() {
               <Button variant="ghost" onClick={() => router.push('/app')}>
                 ← Volver
               </Button>
-              <h1 className="text-xl font-semibold">Subir y Marcar</h1>
+              <h1 className="text-xl font-semibold">Proteger Archivo</h1>
             </div>
           </div>
         </div>
       </header>
       <main className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Subir Imagen</CardTitle>
-            <CardDescription>
-              Selecciona una imagen para añadir una marca de agua invisible.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'
-              } ${isCompressing ? 'border-blue-300 bg-blue-50' : ''}`}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-            >
-              {isCompressing ? (
-                <div>
-                  <div className="text-blue-600 text-4xl mb-2">⏳</div>
-                  <p className="text-sm font-medium text-blue-700">Comprimiendo imagen...</p>
-                </div>
-              ) : selectedFile ? (
-                <div>
-                  <div className="text-green-600 text-4xl mb-2">✓</div>
-                  <p className="font-medium text-green-700 truncate break-all" title={originalFile?.name}>
-                    {truncateFileName(originalFile?.name || '')}
-                  </p>
-                  <p className="text-xs text-green-600">
-                    {formatFileSize(originalFile!.size)} → {formatFileSize(selectedFile.size)}
-                  </p>
-                  <div className="mt-4 flex gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => cameraInputRef.current?.click()}
-                    >
-                      📷 Cambiar foto
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => galleryInputRef.current?.click()}
-                    >
-                      🖼️ Cambiar galería
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-gray-400 text-4xl mb-2">📤</div>
-                  <p className="text-sm text-gray-600 mb-4">Arrastra o elige desde:</p>
-                  <div className="flex gap-3 justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => cameraInputRef.current?.click()}
-                    >
-                      📷 Foto
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => galleryInputRef.current?.click()}
-                    >
-                      🖼️ Galería
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
-
-            {/* Purpose Input */}
-            <div className="space-y-2">
-              <Label htmlFor="purpose">Propósito de la marca de agua</Label>
-              <Input
-                id="purpose"
-                placeholder="Ej: Propiedad de Juan Pérez, Documento confidencial, etc."
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                className={error && !purpose ? 'border-red-500' : ''}
-                disabled={isUploading}
-                maxLength={255}
-              />
-              <div className="flex justify-between">
-                <p className="text-xs text-gray-500">
-                  Este texto se incrustará de forma invisible en la imagen
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Marcar Archivo</span>
+          </CardTitle>
+          <CardDescription className="space-y-2">
+            <p className="text-base">
+              Añade una marca de agua <strong>invisible</strong>
+            </p>
+            <div className="flex items-start space-x-2 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div>
+                <p className="font-medium text-blue-800">Procesamiento 100% local</p>
+                <p className="text-blue-700">
+                  Tu imagen se procesa pero no se almacena. 
+                  Solo guardamos un identificador único para verificación posterior.
                 </p>
-                <span className="text-xs text-gray-400">
-                  {purpose.length}/255
-                </span>
               </div>
             </div>
-
-            {/* Progress Section*/}
-            {isUploading && (
-              <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm font-medium text-blue-800">{uploadStage}</span>
-                </div>
-                <Progress value={uploadProgress} className="w-full" />
-                <div className="flex justify-between text-xs text-blue-600">
-                  <span>Procesando...</span>
-                  <span>{uploadProgress}%</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center ${
+              selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-gray-400'
+            } ${isCompressing ? 'border-blue-300 bg-blue-50' : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {isCompressing ? (
+              <div>
+                <div className="text-blue-600 text-4xl mb-2">⏳</div>
+                <p className="text-sm font-medium text-blue-700">Comprimiendo imagen...</p>
+              </div>
+            ) : selectedFile ? (
+              <div>
+                <div className="text-green-600 text-4xl mb-2">✓</div>
+                <p className="font-medium text-green-700 truncate break-all" title={originalFile?.name}>
+                  {truncateFileName(originalFile?.name || '')}
+                </p>
+                <p className="text-xs text-green-600">
+                  {formatFileSize(originalFile!.size)} → {formatFileSize(selectedFile.size)}
+                </p>
+                <div className="mt-4 flex gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="lg:hidden"
+                  >
+                    📷 Cambiar foto
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => galleryInputRef.current?.click()}
+                  >
+                    🖼️ Cambiar archivo
+                  </Button>
                 </div>
               </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
-                {error}
-              </div>
-            )}
-
-            {/* Success Message */}
-            {success && (
-              <div className="p-3 text-sm text-green-500 bg-green-50 border border-green-200 rounded">
-                ¡Archivo procesado y descargado correctamente!
-              </div>
-            )}
-
-            {/* Upload Button */}
-            <Button
-              onClick={handleUpload}
-              disabled={!selectedFile || !purpose.trim() || isUploading}
-              className="w-full"
-            >
-              {isUploading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Procesando...</span>
+            ) : (
+              <div>
+                <div className="text-gray-400 text-4xl mb-2">📤</div>
+                <p className="text-sm text-gray-600 mb-4">
+                  <span className="hidden lg:inline">Arrastra o elige desde:</span>
+                  <span className="lg:hidden">Elige una imagen:</span>
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="lg:hidden"
+                  >
+                    📷 Foto
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => galleryInputRef.current?.click()}
+                  >
+                    🖼️ Galería
+                  </Button>
                 </div>
-              ) : (
-                'Procesar y Descargar'
-              )}
-            </Button>
+                <p className="text-xs text-gray-500 mt-3 lg:hidden">
+                  Toca "Foto" para usar la cámara
+                </p>
+              </div>
+            )}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
 
-            <div className="text-xs text-gray-500 text-center">
-              <p>Formatos soportados: JPG, PNG, BMP</p>
-              <p>El sistema verificará automáticamente la calidad de la imagen</p>
+          {/* Purpose Input */}
+          <div className="space-y-2">
+            <Label htmlFor="purpose">Propósito de la marca de agua</Label>
+            <Input
+              id="purpose"
+              placeholder="Ej: Propiedad de Juan Pérez, Documento confidencial, etc."
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              className={error && !purpose ? 'border-red-500' : ''}
+              disabled={isUploading}
+              maxLength={255}
+            />
+            <div className="flex justify-between">
+              <p className="text-xs text-gray-500">
+                Este texto se incrustará de forma invisible en la imagen
+              </p>
+              <span className="text-xs text-gray-400">
+                {purpose.length}/255
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Progress Section*/}
+          {isUploading && (
+            <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm font-medium text-blue-800">{uploadStage}</span>
+              </div>
+              <Progress value={uploadProgress} className="w-full" />
+              <div className="flex justify-between text-xs text-blue-600">
+                <span>Procesando...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="p-3 text-sm text-green-500 bg-green-50 border border-green-200 rounded">
+              ¡Archivo procesado y descargado correctamente!
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <Button
+            onClick={handleUpload}
+            disabled={!selectedFile || !purpose.trim() || isUploading}
+            className="w-full"
+          >
+            {isUploading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Procesando...</span>
+              </div>
+            ) : (
+              'Procesar y Descargar'
+            )}
+          </Button>
+
+          <div className="text-xs text-gray-500 text-center">
+            <p>Formatos soportados: JPG, PNG, BMP</p>
+            <p>El sistema verificará automáticamente la calidad de la imagen</p>
+          </div>
+        </CardContent>
+      </Card>
       </main>
     </div>
   );

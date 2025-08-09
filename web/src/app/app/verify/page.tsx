@@ -159,7 +159,7 @@ export default function VerifyPage() {
           <CardHeader>
             <CardTitle>Verificar Imagen</CardTitle>
             <CardDescription>
-              Sube una imagen para verificar si contiene una marca de agua invisible
+              Sube una imagen para verificar si contiene una marca de agua invisible.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

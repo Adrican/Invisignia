@@ -74,11 +74,11 @@ export default function AppPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <span>📤</span>
-                <span>Subir y Marcar</span>
+                <span>🔒</span>
+                <span>Proteger Archivo</span>
               </CardTitle>
               <CardDescription>
-                Sube una imagen y añade una marca de agua invisible
+                Protege una imagen añadiendo una marca de agua invisible
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -86,7 +86,7 @@ export default function AppPage() {
                 className="w-full" 
                 onClick={() => router.push('/app/upload')}
               >
-                Subir Archivo
+                Elegir Archivo
               </Button>
             </CardContent>
           </Card>
