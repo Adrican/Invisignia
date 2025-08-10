@@ -11,10 +11,26 @@
     "install:api": "cd api && pip install -r requirements.txt",
     "setup": "npm run install:api && npm run install:web",
     "build:web": "cd web && npm run build",
-    "start:web": "cd web && npm start"
+    "start:web": "cd web && npm start",
+    "test:e2e": "jest --testMatch='**/tests/**/*.test.js'",
+    "test:e2e:watch": "jest --testMatch='**/tests/**/*.test.js' --watch",
+    "test:e2e:ci": "NODE_ENV=ci jest --testMatch='**/tests/**/*.test.js'",
+    "test:auth": "jest tests/e2e/auth.test.js",
+    "test:upload": "jest tests/e2e/upload.test.js",
+    "test:verify": "jest tests/e2e/verify.test.js"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^9.1.0",
+    "selenium-webdriver": "^4.15.0",
+    "@types/selenium-webdriver": "^4.1.17",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.5"
   },
-  "keywords": ["watermarking", "fastapi", "nextjs", "dct"]
+  "keywords": [
+    "watermarking",
+    "fastapi",
+    "nextjs",
+    "dct"
+  ],
+  "dependencies": {}
 }
